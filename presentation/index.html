@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livraria Phygital</title>
+    <style>
+        /* Estilos base turbinados */
+        :root { --cor-primaria: #2c3e50; --cor-secundaria: #e74c3c; --fundo: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--fundo); margin: 0; padding: 0; color: #333; }
+        header { background-color: var(--cor-primaria); color: white; padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+
+        /* Barra de Pesquisa */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; }
+        .search-bar input { padding: 12px; width: 60%; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; }
+        .search-bar button { padding: 12px 25px; background-color: var(--cor-secundaria); color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .search-bar button:hover { background-color: #c0392b; }
+
+        /* Grid de Livros (Vitrine) */
+        .grid-livros { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .livro-card { background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: 1px solid #eee; }
+        .livro-card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: var(--cor-primaria); }
+        .livro-card h3 { color: var(--cor-primaria); margin-top: 0; font-size: 1.2rem; }
+        .preco { color: #27ae60; font-size: 1.4rem; font-weight: bold; margin: 15px 0; }
+
+        /* Tela de Detalhes do Livro */
+        #detalhes-view { display: none; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .btn-voltar { background: transparent; border: 2px solid var(--cor-primaria); color: var(--cor-primaria); padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
+        .btn-voltar:hover { background: var(--cor-primaria); color: white; }
+        .detalhes-conteudo h2 { color: var(--cor-primaria); font-size: 2rem; margin-top: 0; }
+        .detalhes-conteudo .preco-destaque { color: var(--cor-secundaria); font-size: 2rem; font-weight: bold; }
+        .sinopse-box { background: #f9f9f9; padding: 20px; border-left: 4px solid var(--cor-secundaria); margin-top: 20px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📚 Livraria Phygital</h1>
+    </header>
+
+    <div class="container">
+
+        <div id="home-view">
+            <div class="search-bar">
+                <input type="text" id="inputBusca" placeholder="Buscar livro pelo título..." onkeyup="verificarEnter(event)">
+                <button onclick="pesquisar()">Buscar</button>
+            </div>
+
+            <h2 id="titulo-secao">Destaques da Loja</h2>
+            <div class="grid-livros" id="lista-livros">
+                </div>
+        </div>
+
+        <div id="detalhes-view">
+            <button class="btn-voltar" onclick="voltarParaHome()">← Voltar para a Loja</button>
+            <div class="detalhes-conteudo" id="conteudo-livro">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Carrega a vitrine inicial ao abrir a página
+        async function carregarLivros(termo = '') {
+            const url = termo ? `/api/livros?q=${termo}` : '/api/livros';
+            const response = await fetch(url);
+            const livros = await response.json();
+            const container = document.getElementById('lista-livros');
+
+            document.getElementById('titulo-secao').innerText = termo ? `Resultados para "${termo}"` : 'Destaques da Loja';
+
+            if (livros.length === 0) {
+                container.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #777;">Nenhum livro encontrado.</p>';
+                return;
+            }
+
+            container.innerHTML = livros.map(livro => `
+                <div class="livro-card" onclick="abrirDetalhes(${livro.id})">
+                    <h3>${livro.titulo}</h3>
+                    <p class="preco">R$ ${livro.preco.toFixed(2)}</p>
+                    <span style="font-size: 0.9em; color: #888;">Ver detalhes ➔</span>
+                </div>
+            `).join('');
+        }
+
+        // Função para buscar o livro específico no back-end e montar a tela
+        async function abrirDetalhes(id) {
+            const response = await fetch(`/api/livros/${id}`);
+            const livro = await response.json();
+
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('detalhes-view').style.display = 'block';
+
+            document.getElementById('conteudo-livro').innerHTML = `
+                <h2>${livro.titulo}</h2>
+                <p class="preco-destaque">R$ ${livro.preco.toFixed(2)}</p>
+                <div class="sinopse-box">
+                    <strong>Sinopse:</strong><br><br>
+                    ${livro.sinopse}
+                </div>
+                <button style="margin-top: 30px; padding: 15px 30px; background: #27ae60; color: white; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 1.1rem; width: 100%;">Adicionar ao Carrinho</button>
+            `;
+        }
+
+        // Navegação: Esconde detalhes e mostra a vitrine
+        function voltarParaHome() {
+            document.getElementById('detalhes-view').style.display = 'none';
+            document.getElementById('home-view').style.display = 'block';
+        }
+
+        function pesquisar() {
+            const termo = document.getElementById('inputBusca').value;
+            carregarLivros(termo);
+        }
+
+        function verificarEnter(event) {
+            if (event.key === "Enter") pesquisar();
+        }
+
+        // Inicializa a loja
+        carregarLivros();
+    </script>
+</body>
+</html>
